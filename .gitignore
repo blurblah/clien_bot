@@ -2,3 +2,4 @@
 venv/
 *.html
 .idea
+__pycache__
