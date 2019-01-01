@@ -3,3 +3,4 @@ venv/
 *.html
 .idea
 __pycache__
+*.txt
