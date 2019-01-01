@@ -1,0 +1,61 @@
+---
+swagger: "2.0"
+info:
+  description: "Description..."
+  version: "0.1.0"
+  title: "Clien notification bot"
+basePath: "/clienbot/v1"
+paths:
+  /notifications:
+    post:
+      tags:
+      - "notifications"
+      description: "모든 사용자에게 공지 메세지 발송"
+      operationId: "notifications_post"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "메세지 내용"
+        required: true
+        schema:
+          $ref: "#/definitions/Notification"
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            $ref: "#/definitions/Success"
+        400:
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/Failure"
+      x-swagger-router-controller: "clien_bot.controllers.notifications_controller"
+definitions:
+  Notification:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    example:
+      message: "message"
+  Success:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+        default: "ok"
+      code:
+        type: "integer"
+    example:
+      code: 0
+      message: "ok"
+  Failure:
+    type: "object"
+    properties:
+      error_message:
+        type: "string"
+      error_code:
+        type: "integer"
