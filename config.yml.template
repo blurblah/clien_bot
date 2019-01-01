@@ -1,0 +1,12 @@
+
+COMMON: &common
+  DEBUG: False
+  TESTING: False
+
+DEVELOPMENT: &development
+  <<: *common
+  DEBUG: True
+  TELEGRAM_BOT_TOKEN: YOUR_TELEGRAM_BOT_TOKEN
+
+PRODUCTION: &production
+  <<: *common
