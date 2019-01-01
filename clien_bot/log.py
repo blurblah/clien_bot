@@ -26,11 +26,15 @@ LOG_CONFIG = {
             'handlers': ['console'],
             'level': 'INFO'
         },
+        'main': {
+            'handlers': ['console'],
+            'level': 'INFO'
+        },
         'controller': {
             'handlers': ['console'],
             'level': 'DEBUG'
         },
-        'data_service': {
+        'bot': {
             'handlers': ['console'],
             'level': 'DEBUG'
         },
