@@ -3,14 +3,13 @@
 import time
 
 import connexion
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import clien_bot.log
 from clien_bot import encoder
-from clien_bot.services.bot import Bot
+from clien_bot.services.bot_service import Bot
 from flask_env import Environments
-import logging
-import threading
 
 
 def sample_job():
@@ -26,7 +25,8 @@ def main():
     app.app.json_encoder = encoder.JSONEncoder
     app.add_api('swagger.yaml', arguments={'title': 'Clien notification bot'})
 
-    bot = Bot(app.app.config['TELEGRAM_BOT_TOKEN'])
+    bot = Bot(app.app.config['TELEGRAM_BOT_TOKEN'],
+              app.app.config['MONGO_URI'])
     bot.run()
 
     scheduler = BackgroundScheduler()
