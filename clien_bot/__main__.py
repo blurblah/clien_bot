@@ -10,10 +10,12 @@ import clien_bot.log
 from clien_bot import encoder
 from clien_bot.services.bot_service import Bot
 from flask_env import Environments
+from clien_bot.services.crawl_service import CrawlService
 
 
-def sample_job():
-    print('Sample {}'.format(time.time()))
+def crawl_job(mongo_uri):
+    service = CrawlService(mongo_uri)
+    service.get_latest_articles()
 
 
 def main():
@@ -25,14 +27,14 @@ def main():
     app.app.json_encoder = encoder.JSONEncoder
     app.add_api('swagger.yaml', arguments={'title': 'Clien notification bot'})
 
-    bot = Bot(app.app.config['TELEGRAM_BOT_TOKEN'],
-              app.app.config['MONGO_URI'])
+    mongo_uri = app.app.config['MONGO_URI']
+    bot = Bot(app.app.config['TELEGRAM_BOT_TOKEN'], mongo_uri)
     bot.run()
 
     scheduler = BackgroundScheduler()
     scheduler.start()
     logger.info('Background scheduler started.')
-    scheduler.add_job(sample_job, 'interval', minutes=1)
+    scheduler.add_job(func=crawl_job, trigger='interval', args=[mongo_uri], minutes=1)
 
     app.run(port=8080)
 

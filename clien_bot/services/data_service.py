@@ -1,6 +1,5 @@
 
 from pymongo import MongoClient
-from flask import Flask
 
 
 class DataService(object):
@@ -9,6 +8,20 @@ class DataService(object):
         self.db = self.client['clien_bot']
         # collection은 게시판 별로 (지금은 allsell으로 고정)
         self.collections = ['allsell']
+        self.crawl_collection = self.db['crawl_info']
+
+    def insert_new_crawl_info(self, board, url):
+        return self.crawl_collection.insert_one({
+            'board': board, 'url': url, 'latest_sn': 0
+        }).inserted_id
+
+    def select_crawl_info(self, board):
+        return self.crawl_collection.find_one({'board': board})
+
+    def update_latest_sn(self, board, latest_sn):
+        updated = self.crawl_collection.find_one_and_update(
+            {'board': board}, {'$set': {'latest_sn': latest_sn}})
+        return updated['_id']
 
     def insert_new_chat_id(self, chat_id):
         # TODO: 모든 게시판(collection) 대상으로 추가

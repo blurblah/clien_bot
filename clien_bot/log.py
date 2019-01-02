@@ -38,6 +38,10 @@ LOG_CONFIG = {
             'handlers': ['console'],
             'level': 'DEBUG'
         },
+        'crawler': {
+            'handlers': ['console'],
+            'level': 'DEBUG'
+        }
     }
 }
 
