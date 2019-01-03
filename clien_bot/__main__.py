@@ -47,7 +47,7 @@ def main():
     scheduler = BackgroundScheduler()
     scheduler.start()
     logger.info('Background scheduler started.')
-    scheduler.add_job(func=crawl_job, trigger='interval', args=[bot_token, mongo_uri], minutes=1, jitter=30)
+    scheduler.add_job(func=crawl_job, trigger='interval', args=[bot_token, mongo_uri], minutes=2, jitter=30)
 
     app.run(port=8080)
 

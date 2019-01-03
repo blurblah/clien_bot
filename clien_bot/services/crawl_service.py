@@ -60,7 +60,9 @@ class CrawlService(object):
 
     def _extract_articles(self, url, latest_sn):
         articles = []
-        r = requests.get(url)
+        r = requests.get(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:10.0) Gecko/20100101 Firefox/62.0'
+        })
         r.encoding = 'UTF-8'
         soup = BeautifulSoup(r.text, 'html.parser')
         items = soup.find_all('div', attrs={'data-role': 'list-row'})
