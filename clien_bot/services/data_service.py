@@ -1,5 +1,6 @@
 
 from pymongo import MongoClient
+from itertools import groupby
 
 
 class DataService(object):
@@ -68,3 +69,56 @@ class DataService(object):
                 chat_ids.append(item['chat_id'])
         # remove duplication
         return list(set(chat_ids))
+
+    # {'chat_id': xxx, 'keywords': []} 형태를 {'keyword': xxx, 'chat_ids': []}로 변경하는 method
+    def pivot_all(self, board):
+        collection = self.db[board]
+        raw_list = []
+        for item in collection.find():
+            for keyword in item['keywords']:
+                raw_list.append({'keyword': keyword, 'chat_id': item['chat_id']})
+
+        raw_list = sorted(raw_list, key=lambda x: x['keyword'])
+        pivot_list = []
+        for k, group in groupby(raw_list, lambda x: x['keyword']):
+            pivot_list.append({
+                'keyword': k,
+                'chat_ids': [m['chat_id'] for m in group]
+            })
+        return pivot_list
+
+
+if __name__ == '__main__':
+    sample = [
+        {'chat_id': 1, 'keywords': ['a', 'b']},
+        {'chat_id': 2, 'keywords': ['a']},
+        {'chat_id': 3, 'keywords': ['b']},
+        {'chat_id': 4, 'keywords': ['c']},
+        {'chat_id': 5, 'keywords': ['a', 'c']},
+        {'chat_id': 6, 'keywords': ['c', 'b']},
+    ]
+
+    service = DataService('mongodb://mongouser:mongouser1q2w3e@localhost:27017')
+    pivoted = service.pivot_all('allsell')
+    print(pivoted)
+    '''
+    raw_list = []
+    for item in sample:
+        for keyword in item['keywords']:
+            raw_list.append({'keyword': keyword, 'chat_id': item['chat_id']})
+
+    raw_list = sorted(raw_list, key=lambda m: m['keyword'])
+    for d in raw_list:
+        print(d)
+
+    grouped = []
+    for k, group in groupby(raw_list, lambda x: x['keyword']):
+        grouped.append({
+            'keyword': k,
+            'chat_ids': [m['chat_id'] for m in group]
+        })
+        #for member in group:
+        #    print('member: {} key: {}'.format(member['chat_id'], k))
+
+    print(grouped)
+    '''
