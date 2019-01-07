@@ -3,10 +3,13 @@ import logging
 import telegram
 from telegram.ext import Updater, CommandHandler
 from clien_bot.services.data_service import DataService
+from clien_bot.services.crawl_service import CrawlService
+import random
+import re
 
 
 class Bot(object):
-    def __init__(self, token, mongo_uri):
+    def __init__(self, token, mongo_uri, repeat_interval, interval_offset):
         self.logger = logging.getLogger('bot')
         self.__bot = telegram.Bot(token=token)
         self.updater = Updater(bot=self.__bot)
@@ -17,9 +20,13 @@ class Bot(object):
         self.add_handler('stop', self.stop_bot)
         #self.add_handler('unregister', self.unregister_keywords, has_args=True)
         self.add_handler('clear', self.clear)
-        self.service = DataService(mongo_uri)
+        self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만
         self.board = 'allsell'
+        self.crawl_service = CrawlService(mongo_uri)
+        self.repeat_interval = repeat_interval
+        self.interval_offset = interval_offset
+        self._add_job_to_queue(self.crawl_job_cb, self.repeat_interval, self.interval_offset)
 
     def add_handler(self, command, callback, has_args=False):
         handler = CommandHandler(command, callback, pass_args=has_args)
@@ -29,7 +36,7 @@ class Bot(object):
     def start_bot(self, bot, update):
         chat_id = update.message.chat_id
         # chat_id DB 저장 (공지 발송용)
-        inserted = self.service.insert_new_chat_id(chat_id)
+        inserted = self.data_service.insert_new_chat_id(chat_id)
         self.logger.info('[{}] Bot registered. inserted_id: {}'.format(chat_id, inserted))
         update.message.reply_text('이거슨 클리앙 알리미.')
         # TODO: 기본 설명 추가
@@ -39,7 +46,7 @@ class Bot(object):
         str_args = ' '.join(args)
         self.logger.info('[{}] Input arguments: {}'.format(chat_id, str_args))
         # chat_id, keywords DB 저장
-        updated = self.service.update_keywords(chat_id, self.board, args)
+        updated = self.data_service.update_keywords(chat_id, self.board, args)
         self.logger.info('[{}] Updated id: {}'.format(chat_id, updated))
         self.logger.info('[{}] Registered keywords: {}'.format(chat_id, str_args))
         update.message.reply_text('Registered keywords: {}'.format(str_args))
@@ -59,18 +66,18 @@ class Bot(object):
     def clear(self, bot, update):
         chat_id = update.message.chat_id
         # chat_id의 모든 keywords를 DB에서 제거
-        updated = self.service.clear_keywords(chat_id, self.board)
+        updated = self.data_service.clear_keywords(chat_id, self.board)
         self.logger.info('[{}] Updated id: {}'.format(chat_id, updated))
         self.logger.info('[{}] Unregistered all keywords'.format(chat_id))
         # keyword list DB에서 가져오기
-        registered = self.service.select_keywords(chat_id, self.board)
+        registered = self.data_service.select_keywords(chat_id, self.board)
         # TODO: 리스트가 그대로 표시됨
         update.message.reply_text('Registered keywords: {}'.format(registered))
 
     def show_registered_keywords(self, bot, update):
         chat_id = update.message.chat_id
         # DB에서 chat_id로 등록된 keyword list 가져오기
-        keywords = self.service.select_keywords(chat_id, self.board)
+        keywords = self.data_service.select_keywords(chat_id, self.board)
         # TODO: 리스트가 그대로 표시됨
         self.logger.info('[{}] Registered keywords: {}'.format(chat_id, keywords))
         if len(keywords) > 0:
@@ -86,7 +93,7 @@ class Bot(object):
     def stop_bot(self, bot, update):
         chat_id = update.message.chat_id
         # DB에서 사용자 제거
-        self.service.delete_chat_id(chat_id)
+        self.data_service.delete_chat_id(chat_id)
         self.logger.info('[{}] Bot unregistered.'.format(chat_id))
 
     def shutdown(self):
@@ -96,3 +103,27 @@ class Bot(object):
     def run(self):
         self.updater.start_polling()
         self.logger.info('Start polling...')
+
+    def _add_job_to_queue(self, cb, interval, first=0):
+        job_queue = self.updater.job_queue
+        return job_queue.run_repeating(cb, interval=interval, first=first)
+
+    def _remove_job(self, job):
+        job.schedule_removal()
+
+    def crawl_job_cb(self, bot, job):
+        articles = self.crawl_service.get_latest_articles()
+        search_targets = self.data_service.pivot_all('allsell')
+
+        for article in articles:
+            for target in search_targets:
+                self._send_searched_result(target['keyword'], article['title'],
+                                           article['link'], target['chat_ids'])
+        offset = random.randint(-self.interval_offset, self.interval_offset)
+        job.interval = self.repeat_interval + offset
+        self.logger.info('Crawl job will be triggered after {} seconds'.format(job.interval))
+
+    def _send_searched_result(self, keyword, title, link, chat_ids):
+        if re.search(keyword, title, re.IGNORECASE):
+            for chat_id in chat_ids:
+                self.send_message(chat_id, link)
