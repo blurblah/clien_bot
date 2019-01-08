@@ -91,8 +91,8 @@ class Bot(object):
             msg = '저장된 검색 키워드가 없습니다!'
         update.message.reply_text(msg)
 
-    def send_message(self, chat_id, msg):
-        self.__bot.send_message(chat_id=chat_id, text=msg)
+    def send_message(self, chat_id, msg, parse_mode=None):
+        self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode)
         self.logger.info('[{}] Sent message.'.format(chat_id))
 
     def stop_bot(self, bot, update):
@@ -113,22 +113,29 @@ class Bot(object):
         job_queue = self.updater.job_queue
         return job_queue.run_repeating(cb, interval=interval, first=first)
 
+    # TODO: API로 job 제거할 때 사용 예정
     def _remove_job(self, job):
         job.schedule_removal()
 
     def crawl_job_cb(self, bot, job):
-        articles = self.crawl_service.get_latest_articles()
-        search_targets = self.data_service.pivot_all('allsell')
+        articles = self.crawl_service.get_latest_articles(self.board)
+        # TODO: DB 관련된 작업을 정리할 필요가 있음
+        search_targets = self.data_service.pivot_all(self.board)
+        board_name = self.data_service.select_crawl_info(self.board)['name']
 
         for article in articles:
             for target in search_targets:
-                self._send_searched_result(target['keyword'], article['title'],
+                self._send_searched_result(board_name, target['keyword'], article['title'],
                                            article['link'], target['chat_ids'])
         offset = random.randint(-self.interval_offset, self.interval_offset)
         job.interval = self.repeat_interval + offset
         self.logger.info('Crawl job will be triggered after {} seconds'.format(job.interval))
 
-    def _send_searched_result(self, keyword, title, link, chat_ids):
+    def _send_searched_result(self, board_name, keyword, title, link, chat_ids):
         if re.search(keyword, title, re.IGNORECASE):
+            message = self._make_md_message_format(board_name, title, link)
             for chat_id in chat_ids:
-                self.send_message(chat_id, link)
+                self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
+
+    def _make_md_message_format(self, board_name, title, link):
+        return '_{}_\n[{}]({})'.format(board_name, title, link)

@@ -12,12 +12,11 @@ class CrawlService(object):
         self.ENDPOINT = 'https://www.clien.net'
         self.logger = logging.getLogger('crawler')
         self.data_service = DataService(mongo_uri)
-        # 게시판 종류는 우선 하나만
-        self.board = 'allsell'
+        # 게시판 종류는 우선 하나만 ('allsell')
 
-    def get_latest_articles(self):
+    def get_latest_articles(self, board_name):
         articles = []
-        crawl_info = self.data_service.select_crawl_info(self.board)
+        crawl_info = self.data_service.select_crawl_info(board_name)
         latest_sn = int(crawl_info['latest_sn'])
         self.logger.info('latest sn: {}'.format(latest_sn))
         page = 0
@@ -34,7 +33,7 @@ class CrawlService(object):
             else:
                 page = page + 1
         if len(articles) > 0:
-            self.data_service.update_latest_sn(self.board, articles[0]['sn'])
+            self.data_service.update_latest_sn(board_name, articles[0]['sn'])
 
         for article in articles:
             self.logger.info(json.dumps(article, ensure_ascii=False))
