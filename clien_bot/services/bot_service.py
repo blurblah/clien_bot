@@ -1,14 +1,28 @@
 
 import logging
-import telegram
-from telegram.ext import Updater, CommandHandler
-from clien_bot.services.data_service import DataService
-from clien_bot.services.crawl_service import CrawlService
 import random
 import re
+import telegram
+from functools import wraps
+from telegram.ext import Updater, CommandHandler
+
+from clien_bot.services.crawl_service import CrawlService
+from clien_bot.services.data_service import DataService
 
 
 class Bot(object):
+
+    class Decorators(object):
+        @classmethod
+        def send_typing_action(cls, func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                instance, bot, update = args
+                bot.send_chat_action(chat_id=update.effective_message.chat_id,
+                                     action=telegram.ChatAction.TYPING)
+                return func(instance, bot, update, **kwargs)
+            return wrapper
+
     def __init__(self, token, mongo_uri, repeat_interval, interval_offset):
         self.logger = logging.getLogger('bot')
         self.__bot = telegram.Bot(token=token)
@@ -18,7 +32,6 @@ class Bot(object):
         self.add_handler('register', self.register_keywords, has_args=True)
         self.add_handler('list', self.show_registered_keywords)
         self.add_handler('stop', self.stop_bot)
-        #self.add_handler('unregister', self.unregister_keywords, has_args=True)
         self.add_handler('clear', self.clear)
         self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만
@@ -33,6 +46,7 @@ class Bot(object):
         self.dispatcher.add_handler(handler)
         self.logger.info('Registered handler for command {}.'.format(command))
 
+    @Decorators.send_typing_action
     def start_bot(self, bot, update):
         chat_id = update.message.chat_id
         # chat_id DB 저장 (공지 발송용)
@@ -41,6 +55,7 @@ class Bot(object):
         update.message.reply_text('이거슨 클리앙 알리미.')
         # TODO: 기본 설명 추가
 
+    @Decorators.send_typing_action
     def register_keywords(self, bot, update, args):
         chat_id = update.message.chat_id
         str_args = ' '.join(args)
@@ -51,18 +66,7 @@ class Bot(object):
         self.logger.info('[{}] Registered keywords: {}'.format(chat_id, str_args))
         update.message.reply_text('Registered keywords: {}'.format(str_args))
 
-    '''
-    def unregister_keywords(self, bot, update, args):
-        chat_id = update.message.chat_id
-        str_args = ' '.join(args)
-        self.logger.info('[{}] Input arguments: {}'.format(chat_id, str_args))
-        # TODO: keywords를 DB에서 제거
-        self.logger.info('[{}] Unregistered keywords: {}'.format(chat_id, args))
-        # TODO: 남은 keyword list DB에서 가져오기
-        registered = []
-        update.message.reply_text('Registered keywords: {}'.format(registered))
-    '''
-
+    @Decorators.send_typing_action
     def clear(self, bot, update):
         chat_id = update.message.chat_id
         # chat_id의 모든 keywords를 DB에서 제거
@@ -74,6 +78,7 @@ class Bot(object):
         # TODO: 리스트가 그대로 표시됨
         update.message.reply_text('Registered keywords: {}'.format(registered))
 
+    @Decorators.send_typing_action
     def show_registered_keywords(self, bot, update):
         chat_id = update.message.chat_id
         # DB에서 chat_id로 등록된 keyword list 가져오기
