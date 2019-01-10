@@ -21,9 +21,13 @@ class CrawlService(object):
         self.logger.info('latest sn: {}'.format(latest_sn))
         page = 0
         while True:
-            extracted = self._extract_articles(
-                self._make_url_with_page(crawl_info['url'], page),
-                latest_sn)
+            try:
+                extracted = self._extract_articles(
+                    self._make_url_with_page(crawl_info['url'], page),
+                    latest_sn)
+            except Exception as e:
+                self.logger.error(str(e))
+                break
             articles.extend(extracted)
             if latest_sn == 0:
                 break

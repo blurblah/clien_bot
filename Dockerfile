@@ -11,6 +11,6 @@ COPY . /usr/src/app
 
 EXPOSE 8080
 
+ENV FLASK_ENV PRODUCTION
 ENTRYPOINT ["python3"]
-
 CMD ["-m", "clien_bot"]

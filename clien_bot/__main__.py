@@ -14,7 +14,7 @@ def main():
     logger = logging.getLogger('main')
     connecxion_app = connexion.App(__name__, specification_dir='./swagger/')
     app = connecxion_app.app
-    env = Environments(app, default_env='DEVELOPMENT')
+    env = Environments(app)
     env.from_yaml('config.yml')
     app.json_encoder = encoder.JSONEncoder
     connecxion_app.add_api('swagger.yaml', arguments={'title': 'Clien notification bot'})
