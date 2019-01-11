@@ -63,13 +63,20 @@ class Bot(object):
     @Decorators.send_typing_action
     def register_keywords(self, bot, update, args):
         chat_id = update.message.chat_id
-        str_args = ' '.join(args)
-        self.logger.info('[{}] Input arguments: {}'.format(chat_id, str_args))
-        # chat_id, keywords DB 저장
-        updated = self.data_service.update_keywords(chat_id, self.board, args)
-        self.logger.info('[{}] Updated id: {}'.format(chat_id, updated))
-        self.logger.info('[{}] Registered keywords: {}'.format(chat_id, str_args))
-        update.message.reply_text('Registered keywords: {}'.format(str_args))
+        if len(args) < 1:
+            update.message.reply_text('키워드가 입력되지 않았습니다.')
+        else:
+            str_args = ','.join(args)
+            self.logger.info('[{}] Input arguments: {}'.format(chat_id, str_args))
+            # chat_id, keywords DB 저장
+            updated = self.data_service.update_keywords(chat_id, self.board, args)
+            self.logger.info('[{}] Updated id: {}'.format(chat_id, updated))
+            self.logger.info('[{}] Registered keywords: {}'.format(chat_id, str_args))
+            messages = [
+                '키워드가 등록되었습니다.',
+                '등록된 키워드: _{}_'.format(str_args)
+            ]
+            update.message.reply_text('\n'.join(messages), parse_mode=telegram.ParseMode.MARKDOWN)
 
     @Decorators.send_typing_action
     def clear(self, bot, update):
@@ -79,22 +86,20 @@ class Bot(object):
         self.logger.info('[{}] Updated id: {}'.format(chat_id, updated))
         self.logger.info('[{}] Unregistered all keywords'.format(chat_id))
         # keyword list DB에서 가져오기
-        registered = self.data_service.select_keywords(chat_id, self.board)
-        # TODO: 리스트가 그대로 표시됨
-        update.message.reply_text('Registered keywords: {}'.format(registered))
+        # registered = self.data_service.select_keywords(chat_id, self.board)
+        update.message.reply_text('키워드 리스트가 초기화 되었습니다.')
 
     @Decorators.send_typing_action
     def show_registered_keywords(self, bot, update):
         chat_id = update.message.chat_id
         # DB에서 chat_id로 등록된 keyword list 가져오기
         keywords = self.data_service.select_keywords(chat_id, self.board)
-        # TODO: 리스트가 그대로 표시됨
         self.logger.info('[{}] Registered keywords: {}'.format(chat_id, keywords))
         if len(keywords) > 0:
-            msg = 'Registered keywords: {}'.format(keywords)
+            msg = '현재 등록되어있는 키워드: _{}_'.format(','.join(keywords))
         else:
-            msg = '저장된 검색 키워드가 없습니다!'
-        update.message.reply_text(msg)
+            msg = '등록된 키워드가 없습니다.'
+        update.message.reply_text(msg, parse_mode=telegram.ParseMode.MARKDOWN)
 
     @Decorators.send_typing_action
     def help(self, bot, update):
