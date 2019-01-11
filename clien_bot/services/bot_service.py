@@ -33,6 +33,7 @@ class Bot(object):
         self.add_handler('list', self.show_registered_keywords)
         self.add_handler('stop', self.stop_bot)
         self.add_handler('clear', self.clear)
+        self.add_handler('help', self.help)
         self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만
         self.board = 'allsell'
@@ -52,8 +53,12 @@ class Bot(object):
         # chat_id DB 저장 (공지 발송용)
         inserted = self.data_service.insert_new_chat_id(chat_id)
         self.logger.info('[{}] Bot registered. inserted_id: {}'.format(chat_id, inserted))
-        update.message.reply_text('이거슨 클리앙 알리미.')
-        # TODO: 기본 설명 추가
+        welcome_lines = [
+            '클리앙 알리미 봇입니다.',
+            '현재는 사고팔고 게시판에 대해서만 서비스가 가능합니다.'
+        ]
+        update.message.reply_text('\n'.join(welcome_lines))
+        self.send_message(chat_id, self._make_help_message(), telegram.ParseMode.MARKDOWN)
 
     @Decorators.send_typing_action
     def register_keywords(self, bot, update, args):
@@ -90,6 +95,12 @@ class Bot(object):
         else:
             msg = '저장된 검색 키워드가 없습니다!'
         update.message.reply_text(msg)
+
+    @Decorators.send_typing_action
+    def help(self, bot, update):
+        chat_id = update.message.chat_id
+        self.logger.info('[{}] Help message requested.'.format(chat_id))
+        update.message.reply_text(self._make_help_message(), parse_mode=telegram.ParseMode.MARKDOWN)
 
     def send_message(self, chat_id, msg, parse_mode=None):
         self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode)
@@ -139,3 +150,17 @@ class Bot(object):
 
     def _make_md_message_format(self, board_name, title, link):
         return '_{}_\n[{}]({})'.format(board_name, title, link)
+
+    def _make_help_message(self):
+        help_lines = [
+            '<클리앙 알리미 도움말>',
+            '*/start* : 시작',
+            '*/register* : 키워드 등록',
+            '  _/register 키워드1 키워드2 ..._',
+            '  _참고 : 이미 등록한 키워드 리스트가 있다면 일괄 교체합니다._',
+            '*/list* : 등록한 키워드 리스트 표시',
+            '*/clear* : 등록 키워드 전체 삭제',
+            '*/help* : 도움말 표시',
+            '문의사항이 있다면 *blurblah@blurblah.net*으로 연락주세요.'
+        ]
+        return '\n'.join(help_lines)

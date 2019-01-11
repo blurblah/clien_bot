@@ -1,6 +1,7 @@
 
 from pymongo import MongoClient
 from itertools import groupby
+import time
 
 
 class DataService(object):
@@ -30,7 +31,10 @@ class DataService(object):
         for board in self.collections:
             collection = self.db[board]
             if collection.count_documents(filter={'chat_id': chat_id}) < 1:
-                res = collection.insert_one({'chat_id': chat_id, 'keywords': []})
+                res = collection.insert_one({
+                    'chat_id': chat_id, 'keywords': [],
+                    'created_at': time.time()
+                })
                 inserted_ids.append(res.inserted_id)
         return inserted_ids
 
