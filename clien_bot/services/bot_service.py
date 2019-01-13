@@ -28,12 +28,7 @@ class Bot(object):
         self.__bot = telegram.Bot(token=token)
         self.updater = Updater(bot=self.__bot)
         self.dispatcher = self.updater.dispatcher
-        self.add_handler('start', self.start_bot)
-        self.add_handler('register', self.register_keywords, has_args=True)
-        self.add_handler('list', self.show_registered_keywords)
-        self.add_handler('stop', self.stop_bot)
-        self.add_handler('clear', self.clear)
-        self.add_handler('help', self.help)
+        self.init_handlers()
         self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만
         self.board = 'allsell'
@@ -41,6 +36,18 @@ class Bot(object):
         self.repeat_interval = repeat_interval
         self.interval_offset = interval_offset
         self._add_job_to_queue(self.crawl_job_cb, self.repeat_interval, self.interval_offset)
+        self.keyboard = [
+            ['/register', '/list'],
+            ['/clear', '/help']
+        ]
+
+    def init_handlers(self):
+        self.add_handler('start', self.start_bot)
+        self.add_handler('register', self.register_keywords, has_args=True)
+        self.add_handler('list', self.show_registered_keywords)
+        self.add_handler('stop', self.stop_bot)
+        self.add_handler('clear', self.clear)
+        self.add_handler('help', self.help)
 
     def add_handler(self, command, callback, has_args=False):
         handler = CommandHandler(command, callback, pass_args=has_args)
@@ -50,7 +57,7 @@ class Bot(object):
     @Decorators.send_typing_action
     def start_bot(self, bot, update):
         chat_id = update.message.chat_id
-        # chat_id DB 저장 (공지 발송용)
+        # chat_id DB 저장
         inserted = self.data_service.insert_new_chat_id(chat_id)
         self.logger.info('[{}] Bot registered. inserted_id: {}'.format(chat_id, inserted))
         welcome_lines = [
@@ -58,6 +65,8 @@ class Bot(object):
             '현재는 사고팔고 게시판에 대해서만 서비스가 가능합니다.'
         ]
         update.message.reply_text('\n'.join(welcome_lines))
+        # reply_markup = telegram.ReplyKeyboardMarkup(self.keyboard)
+        # self.send_message(chat_id, self._make_help_message(), telegram.ParseMode.MARKDOWN, reply_markup)
         self.send_message(chat_id, self._make_help_message(), telegram.ParseMode.MARKDOWN)
 
     @Decorators.send_typing_action
@@ -107,8 +116,8 @@ class Bot(object):
         self.logger.info('[{}] Help message requested.'.format(chat_id))
         update.message.reply_text(self._make_help_message(), parse_mode=telegram.ParseMode.MARKDOWN)
 
-    def send_message(self, chat_id, msg, parse_mode=None):
-        self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode)
+    def send_message(self, chat_id, msg, parse_mode=None, reply_markup=None):
+        self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode, reply_markup=reply_markup)
         self.logger.info('[{}] Sent message.'.format(chat_id))
 
     def stop_bot(self, bot, update):
