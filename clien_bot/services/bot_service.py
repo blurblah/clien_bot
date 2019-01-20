@@ -4,6 +4,7 @@ import random
 import re
 import telegram
 from functools import wraps
+from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler
 
 from clien_bot.services.crawl_service import CrawlService
@@ -160,7 +161,11 @@ class Bot(object):
         if re.search(keyword, title, re.IGNORECASE):
             message = self._make_md_message_format(board_name, title, link)
             for chat_id in chat_ids:
-                self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
+                try:
+                    self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
+                except Unauthorized as e:
+                    self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
+                                        .format(chat_id, str(e)))
 
     def _make_md_message_format(self, board_name, title, link):
         return '_{}_\n[{}]({})'.format(board_name, title, link)
