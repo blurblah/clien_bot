@@ -159,7 +159,8 @@ class Bot(object):
 
     def _send_searched_result(self, board_name, keyword, title, link, chat_ids):
         self.logger.debug('keyword: {}  title: {}'.format(keyword, title))
-        if re.search(keyword, title, re.IGNORECASE):
+        escaped_keyword = re.escape(keyword)
+        if re.search(escaped_keyword, title, re.IGNORECASE):
             message = self._make_md_message_format(board_name, title, link)
             for chat_id in chat_ids:
                 try:
