@@ -5,10 +5,10 @@ from __future__ import absolute_import
 from flask import json
 from six import BytesIO
 
-from clien_bot.models.failure import Failure  # noqa: E501
-from clien_bot.models.notification import Notification  # noqa: E501
-from clien_bot.models.success import Success  # noqa: E501
-from clien_bot.test import BaseTestCase
+from crawler.models.failure import Failure  # noqa: E501
+from crawler.models.notification import Notification  # noqa: E501
+from crawler.models.success import Success  # noqa: E501
+from crawler.test import BaseTestCase
 
 
 class TestNotificationsController(BaseTestCase):

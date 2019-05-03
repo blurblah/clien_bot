@@ -27,7 +27,7 @@ setup(
     package_data={'': ['swagger/swagger.yaml']},
     include_package_data=True,
     entry_points={
-        'console_scripts': ['clien_bot=clien_bot.__main__:main']},
+        'console_scripts': ['crawler=crawler.__main__:main']},
     long_description="""\
     Description...
     """

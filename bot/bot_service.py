@@ -7,7 +7,7 @@ from functools import wraps
 from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler
 
-from clien_bot.services.crawl_service import CrawlService
+from crawler.services.crawl_service import CrawlService
 from clien_bot.services.data_service import DataService
 
 
@@ -143,6 +143,7 @@ class Bot(object):
     def _remove_job(self, job):
         job.schedule_removal()
 
+    # TODO: remove
     def crawl_job_cb(self, bot, job):
         articles = self.crawl_service.get_latest_articles(self.board)
         # TODO: DB 관련된 작업을 정리할 필요가 있음
@@ -157,6 +158,7 @@ class Bot(object):
         job.interval = self.repeat_interval + offset
         self.logger.info('Crawl job will be triggered after {} seconds'.format(job.interval))
 
+    # TODO: remove
     def _send_searched_result(self, board_name, keyword, title, link, chat_ids):
         self.logger.debug('keyword: {}  title: {}'.format(keyword, title))
         escaped_keyword = re.escape(keyword)
@@ -169,6 +171,7 @@ class Bot(object):
                     self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
                                         .format(chat_id, str(e)))
 
+    # TODO: remove
     def _make_md_message_format(self, board_name, title, link):
         return '_{}_\n[{}]({})'.format(board_name, title, link)
 

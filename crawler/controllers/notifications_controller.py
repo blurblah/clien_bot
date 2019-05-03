@@ -2,11 +2,11 @@ import connexion
 import logging
 from flask import current_app as app
 
-from clien_bot.models.failure import Failure  # noqa: E501
-from clien_bot.models.notification import Notification  # noqa: E501
-from clien_bot.models.success import Success  # noqa: E501
-from clien_bot.services.bot_service import Bot
-from clien_bot.services.data_service import DataService
+from crawler.models.failure import Failure  # noqa: E501
+from crawler.models.notification import Notification  # noqa: E501
+from crawler.models.success import Success  # noqa: E501
+from bot.bot_service import Bot
+from bot.data_service import DataService
 import time
 
 logger = logging.getLogger('controller')

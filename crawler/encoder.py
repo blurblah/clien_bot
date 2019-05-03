@@ -1,7 +1,7 @@
 from connexion.apps.flask_app import FlaskJSONEncoder
 import six
 
-from clien_bot.models.base_model_ import Model
+from crawler.models.base_model_ import Model
 
 
 class JSONEncoder(FlaskJSONEncoder):

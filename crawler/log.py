@@ -6,7 +6,7 @@ LOG_CONFIG = {
     'version': 1,
     'filters': {
         'request_id': {
-            '()': 'clien_bot.request_id.RequestIdFilter'
+            '()': 'crawler.request_id.RequestIdFilter'
         }
     },
     'formatters': {
@@ -41,7 +41,11 @@ LOG_CONFIG = {
         'crawler': {
             'handlers': ['console'],
             'level': 'DEBUG'
-        }
+        },
+        'job': {
+            'handlers': ['console'],
+            'level': 'DEBUG'
+        },
     }
 }
 
