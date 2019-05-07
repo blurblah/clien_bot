@@ -26,8 +26,8 @@ class Job(object):
         articles = self.crawler.get_latest_articles(latest_sn)
         if len(articles) == 0:
             return
-        self.data_service.update_latest_sn(board, articles[0]['sn'])
 
+        self.data_service.update_latest_sn(board, articles[0]['sn'])
         search_targets = self.data_service.pivot_all(board)
         for article in articles:
             for target in search_targets:

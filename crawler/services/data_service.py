@@ -33,25 +33,6 @@ class DataService(object):
             {'board': board}, {'$set': {'latest_sn': latest_sn}})
         return updated['_id']
 
-    def update_keywords(self, chat_id, board, keywords):
-        # keywords key의 값을 통째로 교체
-        collection = self.db[board]
-        updated = collection.find_one_and_update({'chat_id': chat_id},
-                                                 {'$set': {'keywords': keywords}})
-        return updated['_id']
-
-    def clear_keywords(self, chat_id, board):
-        # keywords list의 모든 원소 제거
-        return self.update_keywords(chat_id, board, [])
-
-    def select_keywords(self, chat_id, board):
-        # TODO: keywords 가져오기
-        collection = self.db[board]
-        found = collection.find_one({'chat_id': chat_id})
-        if 'keywords' in found:
-            return found['keywords']
-        return []
-
     def select_all_chat_ids(self):
         # 모든 chat_id 가져오기 (공지 발송용)
         chat_ids = []

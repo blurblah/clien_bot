@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
+import socket
+import time
 
 import connexion
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -9,8 +11,6 @@ import crawler.log
 from crawler import encoder
 from crawler.services.job import Job
 from flask_env import Environments
-import socket
-import time
 
 crawler.log.configure_logger()
 logger = logging.getLogger('main')

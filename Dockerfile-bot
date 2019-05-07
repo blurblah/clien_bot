@@ -8,10 +8,8 @@ COPY requirements.txt /usr/src/app/
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . /usr/src/app
-RUN rm -rf bot
+RUN rm -rf crawler
 
-EXPOSE 8080
-
-ENV FLASK_ENV DEVELOPMENT
+ENV BOT_ENV DEVELOPMENT
 ENTRYPOINT ["python3"]
-CMD ["-m", "crawler"]
+CMD ["-m", "bot"]
