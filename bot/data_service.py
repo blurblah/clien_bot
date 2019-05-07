@@ -7,7 +7,7 @@ import time
 class DataService(object):
     def __init__(self, uri):
         self.client = MongoClient(uri)
-        self.db = self.client['clien_bot']
+        self.db = self.client['crawler']
         # collection은 게시판 별로 (지금은 allsell으로 고정)
         self.collections = ['allsell']
         self.crawl_collection = self.db['crawl_info']

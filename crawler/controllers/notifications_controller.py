@@ -1,13 +1,11 @@
-import connexion
 import logging
+
+import connexion
 from flask import current_app as app
 
 from crawler.models.failure import Failure  # noqa: E501
 from crawler.models.notification import Notification  # noqa: E501
 from crawler.models.success import Success  # noqa: E501
-from bot.bot_service import Bot
-from bot.data_service import DataService
-import time
 
 logger = logging.getLogger('controller')
 
@@ -34,14 +32,14 @@ def notifications_post(body):  # noqa: E501
     offset = app.config['INTERVAL_OFFSET']
 
     # TODO: 문제가 있는 코드. 구조 개선이 필요함
-    bot = Bot(bot_token, mongo_uri, interval, offset)
-    data_service = DataService(mongo_uri)
-    for chat_id in data_service.select_all_chat_ids():
-        try:
-            bot.send_message(chat_id, notification.message)
-        except Exception as e:
-            logger.error('[{}] Exception. Details: {}'.format(chat_id, str(e)))
-        # TODO: Spammer 등록 방지용 임시 코드
-        time.sleep(0.1)
+    # bot = Bot(bot_token, mongo_uri, interval, offset)
+    # data_service = DataService(mongo_uri)
+    # for chat_id in data_service.select_all_chat_ids():
+    #     try:
+    #         bot.send_message(chat_id, notification.message)
+    #     except Exception as e:
+    #         logger.error('[{}] Exception. Details: {}'.format(chat_id, str(e)))
+    #     # TODO: Spammer 등록 방지용 임시 코드
+    #     time.sleep(0.1)
 
     return Success()

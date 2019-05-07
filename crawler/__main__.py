@@ -9,6 +9,8 @@ import crawler.log
 from crawler import encoder
 from crawler.services.job import Job
 from flask_env import Environments
+import socket
+import time
 
 crawler.log.configure_logger()
 logger = logging.getLogger('main')
@@ -22,6 +24,11 @@ def main():
     app.json_encoder = encoder.JSONEncoder
     connecxion_app.add_api('swagger.yaml', arguments={'title': 'Clien notification bot'})
 
+    if not is_reachable_mq(app.config['MQ_HOST'], app.config['MQ_PORT'],
+                           app.config['MQ_CONNECT_RETRY_COUNT']):
+        logger.warning('Could not connect to RabbitMQ.')
+        exit(1)
+
     interval = app.config['REPEAT_INTERVAL']
     offset = app.config['INTERVAL_OFFSET']
     board = 'allsell'
@@ -32,6 +39,25 @@ def main():
                       seconds=interval, jitter=offset)
     scheduler.start()
     connecxion_app.run(port=8080)
+
+
+def is_reachable_mq(mq_host, mq_port, retry_count):
+    reachable = False
+    retry = 0
+    while not reachable and retry < retry_count:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        try:
+            s.connect((mq_host, int(mq_port)))
+            reachable = True
+            break
+        except socket.error:
+            logger.warning('RabbitMQ connection should be established. MQ host: {}  port: {}  Retry: {}'
+                           .format(mq_host, mq_port, retry + 1))
+            time.sleep(1)
+            retry += 1
+        s.close()
+    return reachable
 
 
 if __name__ == '__main__':

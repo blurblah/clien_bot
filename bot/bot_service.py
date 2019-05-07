@@ -8,7 +8,7 @@ from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler
 
 from crawler.services.crawl_service import CrawlService
-from clien_bot.services.data_service import DataService
+from bot.data_service import DataService
 
 
 class Bot(object):
