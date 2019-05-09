@@ -13,7 +13,7 @@ future==0.17.1
 idna==2.8
 inflection==0.3.1
 itsdangerous==1.1.0
-Jinja2==2.10
+Jinja2==2.10.1
 jsonschema==2.6.0
 MarkupSafe==1.1.0
 pika==1.0.1
@@ -23,11 +23,11 @@ pymongo==3.7.2
 python-dateutil==2.6.0
 python-telegram-bot==11.1.0
 pytz==2018.7
-PyYAML==3.13
+PyYAML==5.1
 requests==2.21.0
 six==1.12.0
 soupsieve==1.6
 swagger-spec-validator==2.4.1
 tzlocal==1.5.1
-urllib3==1.24.1
+urllib3==1.24.3
 Werkzeug==0.14.1
