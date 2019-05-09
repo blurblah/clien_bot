@@ -1,3 +1,11 @@
+.travis.yaml
+.swagger-codegen-ignore
+README.md
+tox.ini
+git_push.sh
+test-requirements.txt
+setup.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -63,9 +71,5 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-.DS_Store
-.idea
-__pycache__
-config.yml
+venv
 mongo
-

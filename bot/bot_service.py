@@ -1,14 +1,16 @@
 
+import json
 import logging
-import random
-import re
-import telegram
 from functools import wraps
+from threading import Thread
+
+import pika
+import telegram
 from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler
 
-from clien_bot.services.crawl_service import CrawlService
-from clien_bot.services.data_service import DataService
+from bot.data_service import DataService
+from bot.env import Environments
 
 
 class Bot(object):
@@ -24,7 +26,7 @@ class Bot(object):
                 return func(instance, bot, update, **kwargs)
             return wrapper
 
-    def __init__(self, token, mongo_uri, repeat_interval, interval_offset):
+    def __init__(self, token, mongo_uri):
         self.logger = logging.getLogger('bot')
         self.__bot = telegram.Bot(token=token)
         self.updater = Updater(bot=self.__bot)
@@ -33,14 +35,43 @@ class Bot(object):
         self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만
         self.board = 'allsell'
-        self.crawl_service = CrawlService(mongo_uri)
-        self.repeat_interval = repeat_interval
-        self.interval_offset = interval_offset
-        self._add_job_to_queue(self.crawl_job_cb, self.repeat_interval, self.interval_offset)
         self.keyboard = [
             ['/register', '/list'],
             ['/clear', '/help']
         ]
+        self.env = Environments()
+
+    def init_consumer(self, mq_host, mq_port, queue):
+        self._connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=mq_host, port=mq_port)
+        )
+
+        channel = self._connection.channel()
+        channel.queue_declare(queue=queue)
+        channel.basic_consume(queue=queue, on_message_callback=self.consumer_cb)
+        channel.basic_qos(prefetch_count=1)
+
+        thread = Thread(target=channel.start_consuming)
+        self.logger.info('Waiting consuming...')
+        thread.start()
+        thread.join(0)
+
+    def consumer_cb(self, ch, method, properties, body):
+        received = json.loads(body)
+        chat_id = received['chat_id'] if 'chat_id' in received else None
+        message = received['message'] if 'message' in received else None
+        if not chat_id or not message:
+            self.logger.warning('chat_id or message is None. received: {}'.format(received))
+            return
+
+        self.logger.info('Received body chat_id: {}  message: {}'.
+                         format(received['chat_id'], received['message']))
+        try:
+            self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
+        except Unauthorized as e:
+            self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
+                                .format(chat_id, str(e)))
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def init_handlers(self):
         self.add_handler('start', self.start_bot)
@@ -119,7 +150,7 @@ class Bot(object):
 
     def send_message(self, chat_id, msg, parse_mode=None, reply_markup=None):
         self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode, reply_markup=reply_markup)
-        self.logger.info('[{}] Sent message.'.format(chat_id))
+        self.logger.info('[{}] Sent message: {}'.format(chat_id, msg))
 
     def stop_bot(self, bot, update):
         chat_id = update.message.chat_id
@@ -128,49 +159,15 @@ class Bot(object):
         self.logger.info('[{}] Bot unregistered.'.format(chat_id))
 
     def shutdown(self):
+        if not self._connection.is_closed:
+            self._connection.close()
         self.updater.stop()
         self.updater.idle = False
 
     def run(self):
         self.updater.start_polling()
         self.logger.info('Start polling...')
-
-    def _add_job_to_queue(self, cb, interval, first=0):
-        job_queue = self.updater.job_queue
-        return job_queue.run_repeating(cb, interval=interval, first=first)
-
-    # TODO: API로 job 제거할 때 사용 예정
-    def _remove_job(self, job):
-        job.schedule_removal()
-
-    def crawl_job_cb(self, bot, job):
-        articles = self.crawl_service.get_latest_articles(self.board)
-        # TODO: DB 관련된 작업을 정리할 필요가 있음
-        search_targets = self.data_service.pivot_all(self.board)
-        board_name = self.data_service.select_crawl_info(self.board)['name']
-
-        for article in articles:
-            for target in search_targets:
-                self._send_searched_result(board_name, target['keyword'], article['title'],
-                                           article['link'], target['chat_ids'])
-        offset = random.randint(-self.interval_offset, self.interval_offset)
-        job.interval = self.repeat_interval + offset
-        self.logger.info('Crawl job will be triggered after {} seconds'.format(job.interval))
-
-    def _send_searched_result(self, board_name, keyword, title, link, chat_ids):
-        self.logger.debug('keyword: {}  title: {}'.format(keyword, title))
-        escaped_keyword = re.escape(keyword)
-        if re.search(escaped_keyword, title, re.IGNORECASE):
-            message = self._make_md_message_format(board_name, title, link)
-            for chat_id in chat_ids:
-                try:
-                    self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
-                except Unauthorized as e:
-                    self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
-                                        .format(chat_id, str(e)))
-
-    def _make_md_message_format(self, board_name, title, link):
-        return '_{}_\n[{}]({})'.format(board_name, title, link)
+        self.init_consumer(self.env.config['MQ_HOST'], self.env.config['MQ_PORT'], self.board)
 
     def _make_help_message(self):
         help_lines = [

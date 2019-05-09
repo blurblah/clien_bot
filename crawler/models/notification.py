@@ -5,8 +5,8 @@ from datetime import date, datetime  # noqa: F401
 
 from typing import List, Dict  # noqa: F401
 
-from clien_bot.models.base_model_ import Model
-from clien_bot import util
+from crawler.models.base_model_ import Model
+from crawler import util
 
 
 class Notification(Model):

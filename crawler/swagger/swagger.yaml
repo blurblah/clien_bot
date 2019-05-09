@@ -32,7 +32,7 @@ paths:
           description: "Bad Request"
           schema:
             $ref: "#/definitions/Failure"
-      x-swagger-router-controller: "clien_bot.controllers.notifications_controller"
+      x-swagger-router-controller: "crawler.controllers.notifications_controller"
 definitions:
   Notification:
     type: "object"

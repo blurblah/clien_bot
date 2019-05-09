@@ -10,7 +10,7 @@ class Environments(object):
     def __init__(self, app=None, var_name=None, default_env=None):
         self.app = app
         self.var_name = var_name or 'FLASK_ENV'
-        self.default_env = default_env or 'DEVELOPMENT'
+        self.default_env = default_env or 'LOCAL'
         self.env = os.environ.get(self.var_name, self.default_env)
 
         if app is not None:

@@ -1,30 +1,27 @@
 
 import json
 import logging
+
 import requests
 from bs4 import BeautifulSoup
 
-from clien_bot.services.data_service import DataService
-
 
 class CrawlService(object):
-    def __init__(self, mongo_uri):
+    def __init__(self, crawl_url):
         self.ENDPOINT = 'https://www.clien.net'
         self.logger = logging.getLogger('crawler')
-        self.data_service = DataService(mongo_uri)
         # 게시판 종류는 우선 하나만 ('allsell')
+        self.crawl_url = crawl_url
 
-    def get_latest_articles(self, board_name):
+    def get_latest_articles(self, latest_sn):
         articles = []
-        crawl_info = self.data_service.select_crawl_info(board_name)
-        latest_sn = int(crawl_info['latest_sn'])
         self.logger.info('latest sn: {}'.format(latest_sn))
         page = 0
         while True:
             try:
                 extracted = self._extract_articles(
-                    self._make_url_with_page(crawl_info['url'], page),
-                    latest_sn)
+                    self._make_url_with_page(self.crawl_url, page), latest_sn
+                )
             except Exception as e:
                 self.logger.error(str(e))
                 break
@@ -36,8 +33,6 @@ class CrawlService(object):
                 break
             else:
                 page = page + 1
-        if len(articles) > 0:
-            self.data_service.update_latest_sn(board_name, articles[0]['sn'])
 
         for article in articles:
             self.logger.info(json.dumps(article, ensure_ascii=False))

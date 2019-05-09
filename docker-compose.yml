@@ -1,0 +1,59 @@
+version: '3'
+services:
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    hostname: clien-bot-rabbit
+
+  mongo:
+    image: mongo:4.0-xenial
+    volumes:
+      - ./mongo/config/mongod.conf:/etc/mongo/mongod.conf
+      - ./mongo/data:/data/db
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongouser
+
+  mongo-express:
+    image: mongo-express
+    restart: unless-stopped
+    ports:
+      - 8081:8081
+    depends_on:
+      - mongo
+    links:
+      - mongo
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: mongouser
+      ME_CONFIG_BASICAUTH_PASSWORD: mongouser
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: 'true'
+      ME_CONFIG_MONGODB_ADMINUSERNAME: mongouser
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongouser
+
+  crawler:
+    depends_on:
+      - rabbitmq
+      - mongo
+    links:
+      - rabbitmq
+      - mongo
+    build:
+      context: .
+      dockerfile: Dockerfile-crawler
+    ports:
+      - 8080:8080
+
+  bot:
+    depends_on:
+      - rabbitmq
+      - mongo
+    links:
+      - rabbitmq
+      - mongo
+    build:
+      context: .
+      dockerfile: Dockerfile-bot
