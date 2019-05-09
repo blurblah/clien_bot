@@ -46,7 +46,7 @@ class Environments(object):
 
     def from_yaml(self, path):
         with open(path) as f:
-            c = yaml.load(f)
+            c = yaml.load(f, Loader=yaml.FullLoader)
 
         for name in self._possible_names():
             try:
