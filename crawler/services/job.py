@@ -36,8 +36,15 @@ class Job(object):
 
     def _send_searched_result(self, board_name, keyword, title, link, chat_ids):
         self.logger.debug('keyword: {}  title: {}'.format(keyword, title))
-        escaped_keyword = re.escape(keyword)
-        if re.search(escaped_keyword, title, re.IGNORECASE):
+        match_count = 0
+        words = keyword.split('&')
+        for w in words:
+            escaped = re.escape(w)
+            if re.search(escaped, title, re.IGNORECASE):
+                match_count += 1
+
+        if match_count == len(words):
+            self.logger.info('Title \'{}\' is matched by keyword: {}'.format(title, keyword))
             message = self._make_md_message_format(board_name, title, link)
             queue_service = QueueService(
                 self.app.config['MQ_HOST'], self.app.config['MQ_PORT'], 'allsell'
