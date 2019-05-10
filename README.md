@@ -48,8 +48,8 @@ To run the server on a Docker container, please execute the following from the r
 
 ```bash
 # building the image
-docker build -t crawler -f Dockerfile-crawler
-docker build -t bot -f Dockerfile-bot
+docker build -t crawler -f Dockerfile-crawler .
+docker build -t bot -f Dockerfile-bot .
 
 # starting up a container
 docker run -d -p 8080:8080 crawler
