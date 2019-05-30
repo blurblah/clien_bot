@@ -6,7 +6,7 @@ from threading import Thread
 
 import pika
 import telegram
-from telegram.error import Unauthorized
+from telegram.error import Unauthorized, TimedOut, NetworkError
 from telegram.ext import Updater, CommandHandler
 
 from bot.data_service import DataService
@@ -70,6 +70,12 @@ class Bot(object):
             self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
         except Unauthorized as e:
             self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
+                                .format(chat_id, str(e)))
+        except TimedOut as e:
+            self.logger.warning('[{}] Timed out exception. Details: {}'
+                                .format(chat_id, str(e)))
+        except NetworkError as e:
+            self.logger.warning('[{}] Network error exception. Details: {}'
                                 .format(chat_id, str(e)))
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
