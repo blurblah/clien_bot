@@ -1,8 +1,8 @@
 
 import json
 import logging
+import time
 from functools import wraps
-from threading import Thread
 
 import pika
 import telegram
@@ -40,21 +40,80 @@ class Bot(object):
             ['/clear', '/help']
         ]
         self.env = Environments()
+        self._connection = None
+        self._channel = None
+        self._stopping = False
+        self._consumer_tag = None
 
-    def init_consumer(self, mq_host, mq_port, queue):
-        self._connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=mq_host, port=mq_port)
+    def connect(self, mq_host, mq_port):
+        self.logger.info('Connecting to {}:{}...'.format(mq_host, mq_port))
+        return pika.SelectConnection(
+            pika.ConnectionParameters(host=mq_host, port=mq_port),
+            on_open_callback=self.on_connection_open,
+            on_open_error_callback=self.on_connection_open_error,
+            on_close_callback=self.on_connection_closed
         )
 
-        channel = self._connection.channel()
-        channel.queue_declare(queue=queue)
-        channel.basic_consume(queue=queue, on_message_callback=self.consumer_cb)
-        channel.basic_qos(prefetch_count=1)
+    def reconnect(self):
+        delay = 30
+        self._connection.ioloop.stop()
+        time.sleep(delay)
+        self.logger.info('Try to reconnect after {} seconds'.format(delay))
+        if not self._stopping:
+            self._connection = self.connect(self.env.config['MQ_HOST'], self.env.config['MQ_PORT'])
+            self._connection.ioloop.start()
 
-        thread = Thread(target=channel.start_consuming)
-        self.logger.info('Waiting consuming...')
-        thread.start()
-        thread.join(0)
+    def on_connection_closed(self, _unused_connection, reason):
+        self._channel = None
+        if self._stopping:
+            self._connection.ioloop.stop()
+        else:
+            self.logger.warning('Connection closed, reconnect necessary: {}'.format(reason))
+            self.reconnect()
+
+    def on_connection_open(self, _unused_connection):
+        self.logger.info('Connected.')
+        self.open_channel()
+
+    def on_connection_open_error(self, _unused_connection, err):
+        self.logger.error('Connection open error: {}'.format(err))
+        self.reconnect()
+
+    def open_channel(self):
+        self.logger.info('Creating a new channel...')
+        self._connection.channel(on_open_callback=self.on_channel_open)
+
+    def on_channel_open(self, channel):
+        self.logger.info('Channel opened.')
+        self._channel = channel
+        self._channel.add_on_close_callback(self.on_channel_closed)
+        self.setup_queue(self.board)
+
+    def setup_queue(self, queue):
+        self._channel.queue_declare(queue=queue)
+        self._channel.basic_qos(prefetch_count=1)
+        self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
+        self._consumer_tag = self._channel.basic_consume(queue=queue, on_message_callback=self.consumer_cb)
+
+    def on_consumer_cancelled(self, method_frame):
+        self.logger.info('Consumer was cancelled. Shutting down: {}'.format(method_frame))
+        if self._channel:
+            self._channel.close()
+
+    def on_channel_closed(self, channel, reason):
+        self.logger.warning('Channel {} was closed: {}'.format(channel, reason))
+        self._channel = None
+        self._connection.close()
+
+    def stop_consuming(self):
+        if self._channel:
+            self.logger.info('Sending a Basic.Cancel RPC command to RabbitMQ...')
+            self._channel.basic_cancel(self._consumer_tag, self.on_cancel_ok)
+
+    def on_cancel_ok(self, unused_frame):
+        self.logger.info('Cancel OK.')
+        self.logger.info('Closing channel...')
+        self._channel.close()
 
     def consumer_cb(self, ch, method, properties, body):
         received = json.loads(body)
@@ -164,16 +223,25 @@ class Bot(object):
         self.data_service.delete_chat_id(chat_id)
         self.logger.info('[{}] Bot unregistered.'.format(chat_id))
 
-    def shutdown(self):
-        if not self._connection.is_closed:
-            self._connection.close()
+    def stop(self):
+        self._stopping = True
+        self.logger.info('Stopping...')
+        self.stop_consuming()
+        self._connection.ioloop.start()
         self.updater.stop()
         self.updater.idle = False
 
     def run(self):
         self.updater.start_polling()
         self.logger.info('Start polling...')
-        self.init_consumer(self.env.config['MQ_HOST'], self.env.config['MQ_PORT'], self.board)
+        while not self._stopping:
+            self._connection = None
+            try:
+                self._connection = self.connect(self.env.config['MQ_HOST'], self.env.config['MQ_PORT'])
+                self._connection.ioloop.start()
+            except KeyboardInterrupt:
+                self.stop()
+        self.logger.info('Stopped.')
 
     def _make_help_message(self):
         help_lines = [
