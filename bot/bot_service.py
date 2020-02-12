@@ -66,6 +66,7 @@ class Bot(object):
     def on_connection_closed(self, _unused_connection, reason):
         self._channel = None
         if self._stopping:
+            self.logger.info('Stopping...')
             self._connection.ioloop.stop()
         else:
             self.logger.warning('Connection closed, reconnect necessary: {}'.format(reason))
@@ -225,7 +226,7 @@ class Bot(object):
 
     def stop(self):
         self._stopping = True
-        self.logger.info('Stopping...')
+        self.logger.info('Stop consuming...')
         self.stop_consuming()
         self._connection.ioloop.start()
         self.updater.stop()
