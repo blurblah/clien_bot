@@ -28,8 +28,8 @@ class Bot(object):
 
     def __init__(self, token, mongo_uri):
         self.logger = logging.getLogger('bot')
-        self.__bot = telegram.Bot(token=token)
-        self.updater = Updater(bot=self.__bot)
+        self._bot = telegram.Bot(token=token)
+        self.updater = Updater(bot=self._bot)
         self.dispatcher = self.updater.dispatcher
         self.init_handlers()
         self.data_service = DataService(mongo_uri)
@@ -106,6 +106,8 @@ class Bot(object):
         self.logger.warning('Channel {} was closed: {}'.format(channel, reason))
         self._channel = None
         self._connection.close()
+        # for callback
+        self._connection.ioloop.start()
 
     def stop_consuming(self):
         if self._channel:
@@ -217,7 +219,7 @@ class Bot(object):
         update.message.reply_text(self._make_help_message(), parse_mode=telegram.ParseMode.MARKDOWN)
 
     def send_message(self, chat_id, msg, parse_mode=None, reply_markup=None):
-        self.__bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode, reply_markup=reply_markup)
+        self._bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode, reply_markup=reply_markup)
         self.logger.info('[{}] Sent message: {}'.format(chat_id, msg))
 
     def stop_bot(self, bot, update):
