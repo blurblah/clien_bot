@@ -47,12 +47,13 @@ class Bot(object):
 
     def connect(self, mq_host, mq_port):
         self.logger.info('Connecting to {}:{}...'.format(mq_host, mq_port))
-        return pika.SelectConnection(
+        conn = pika.SelectConnection(
             pika.ConnectionParameters(host=mq_host, port=mq_port),
             on_open_callback=self.on_connection_open,
-            on_open_error_callback=self.on_connection_open_error,
             on_close_callback=self.on_connection_closed
         )
+        conn.add_on_open_error_callback(self.on_connection_open_error)
+        return conn
 
     def reconnect(self):
         delay = 30
@@ -127,7 +128,7 @@ class Bot(object):
         self.logger.info('Received body chat_id: {}  message: {}'.
                          format(received['chat_id'], received['message']))
         try:
-            self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
+            self.send_message(chat_id, message.strip(), telegram.ParseMode.MARKDOWN)
         except Unauthorized as e:
             self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
                                 .format(chat_id, str(e)))
