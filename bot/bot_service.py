@@ -125,10 +125,11 @@ class Bot(object):
             self.logger.warning('chat_id or message is None. received: {}'.format(received))
             return
 
+        message = message.strip()
         self.logger.info('Received body chat_id: {}  message: {}'.
                          format(received['chat_id'], received['message']))
         try:
-            self.send_message(chat_id, message.strip(), telegram.ParseMode.MARKDOWN)
+            self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
         except Unauthorized as e:
             self.logger.warning('[{}] Unauthoriezed exception. Details: {}'
                                 .format(chat_id, str(e)))
