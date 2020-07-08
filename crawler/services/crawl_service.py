@@ -46,7 +46,7 @@ class CrawlService(object):
             title = title_tag.find('span', attrs={'data-role': 'list-title-text'}).text
             return {
                 'sn': serial_number,
-                'title': title,
+                'title': title.strip(),
                 'link': '{}{}'.format(self.ENDPOINT, link)
             }
         except Exception as e:

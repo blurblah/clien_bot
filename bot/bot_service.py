@@ -129,7 +129,7 @@ class Bot(object):
 
         message = message.strip()
         self.logger.info('Received body chat_id: {}  message: {}'.
-                         format(received['chat_id'], received['message']))
+                         format(received['chat_id'], message))
         try:
             self.send_message(chat_id, message, telegram.ParseMode.MARKDOWN)
         except Unauthorized as e:
